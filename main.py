@@ -11,12 +11,12 @@ from forwarder import Forwarder
 from admin import admin_handler
 import config_manager as cfg
 
-# Teclado principal
+# Teclado principal actualizado con zona horaria
 main_keyboard = ReplyKeyboardMarkup(
     keyboard=[
         ["➕ Añadir destino", "🗑️ Eliminar mensaje"],
-        ["🔁 Cambiar intervalo", "📄 Ver configuración"],
-        ["🚀 Activar reenvío", "⏹️ Detener reenvío"],
+        ["🔁 Cambiar intervalo", "🌐 Cambiar zona horaria"],
+        ["📄 Ver configuración", "🚀 Activar reenvío", "⏹️ Detener reenvío"],
     ],
     resize_keyboard=True
 )
@@ -52,6 +52,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "➕ Añadir destino\n"
         "🗑️ Eliminar mensaje\n"
         "🔁 Cambiar intervalo\n"
+        "🌐 Cambiar zona horaria\n"
         "📄 Ver configuración\n"
         "🚀 Activar reenvío\n"
         "⏹️ Detener reenvío\n",
@@ -100,20 +101,13 @@ def main():
     
     app = ApplicationBuilder().token(token).build()
 
-    # crear instancia del reenviador
     forwarder = Forwarder(app.bot)
     app.forwarder = forwarder
 
-    # handlers
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
-
-    # capturar mensajes reenviados manualmente
     app.add_handler(MessageHandler(filters.FORWARDED & filters.ALL, save_message))
-
-    # botones
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, admin_handler))
-
     app.add_handler(MessageHandler(filters.COMMAND, unknown))
 
     print("✅ Bot inicializado correctamente, esperando comandos...")
