@@ -12,12 +12,20 @@ def load_config():
     with open(CONFIG_FILE, "r") as f:
         return json.load(f)
 
+def save_config(config):
+    with open(CONFIG_FILE, "w") as f:
+        json.dump(config, f, indent=4)
+
 def load_mensajes():
     if not os.path.exists(MENSAJES_FILE):
         with open(MENSAJES_FILE, "w") as f:
             json.dump([], f)
     with open(MENSAJES_FILE, "r") as f:
         return json.load(f)
+
+def save_mensajes(mensajes):
+    with open(MENSAJES_FILE, "w") as f:
+        json.dump(mensajes, f, indent=4)
 
 class Forwarder:
     def __init__(self, bot: Bot):
@@ -58,7 +66,7 @@ class Forwarder:
         destinos = config["destinos"]
 
         if not destinos:
-            print("⚠️ No hay destinos configurados. Omitiendo reenvío.")
+            print("⚠️ No hay destinos configurados.")
             return
 
         for destino in destinos:
