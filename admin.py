@@ -1,60 +1,44 @@
-from telegram import Update
-from telegram.ext import ContextTypes
-import config_manager as cfg
-import pytz
-
 async def admin_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     config = cfg.load_config()
-    
     if user_id != config["admin_id"]:
-        await update.message.reply_text("🚫 No tienes permisos para usar esta función.")
+        await update.message.reply_text("🚫 No tienes permisos.")
         return
 
     text = update.message.text.strip()
 
-    if text == "🌐 Cambiar zona horaria":
+    if text == "🕒 Intervalo del mensaje":
         await update.message.reply_text(
-            "🌍 Escribe la nueva zona horaria en formato pytz.\nEjemplo: America/Havana, Europe/Madrid, UTC.\n\n"
-            "Lista completa:\nhttps://en.wikipedia.org/wiki/List_of_tz_database_time_zones",
-            disable_web_page_preview=True
+            "Escribe el intervalo en segundos para reenviar este mensaje:",
         )
-        context.user_data["modo_timezone"] = True
+        context.user_data["modo_intervalo_mensaje"] = True
         return
 
-    if context.user_data.get("modo_timezone"):
-        tz = text.strip()
+    if context.user_data.get("modo_intervalo_mensaje"):
         try:
-            pytz.timezone(tz)
-            config["timezone"] = tz
-            cfg.save_config(config)
-            await update.message.reply_text(f"✅ Zona horaria cambiada a {tz}.")
-        except pytz.UnknownTimeZoneError:
-            await update.message.reply_text("❌ Zona horaria no válida. Intenta de nuevo.")
-        context.user_data["modo_timezone"] = False
+            intervalo = int(text)
+            mensaje_id = context.user_data.get("mensaje_actual")
+            mensajes = cfg.load_mensajes()
+            for m in mensajes:
+                if m["message_id"] == mensaje_id:
+                    m["intervalo_segundos"] = intervalo
+            cfg.save_mensajes(mensajes)
+            await update.message.reply_text(f"✅ Intervalo del mensaje configurado en {intervalo}s.")
+        except ValueError:
+            await update.message.reply_text("⚠️ Debes escribir un número válido.")
+        context.user_data["modo_intervalo_mensaje"] = False
         return
 
-    if text == "📄 Ver configuración":
-        destinos = "\n".join(config["destinos"]) if config["destinos"] else "Ninguno"
-        tz = config.get("timezone", "UTC")
-        await update.message.reply_text(
-            f"📄 Configuración actual:\n"
-            f"- Intervalo: {config['intervalo_segundos']} segundos\n"
-            f"- Zona horaria: {tz}\n"
-            f"- Destinos:\n{destinos}"
-        )
+    if text == "✅ Confirmar guardado":
+        await update.message.reply_text("✅ Mensaje guardado para reenvío automático.")
+        context.user_data["mensaje_actual"] = None
         return
 
-    if text == "🚀 Activar reenvío":
-        context.application.forwarder.start_forwarding()
-        await update.message.reply_text("🚀 Reenvío activado con éxito.")
+    if text == "❌ Cancelar":
+        mensaje_id = context.user_data.get("mensaje_actual")
+        mensajes = cfg.load_mensajes()
+        mensajes = [m for m in mensajes if m["message_id"] != mensaje_id]
+        cfg.save_mensajes(mensajes)
+        await update.message.reply_text("❌ Mensaje descartado.")
+        context.user_data["mensaje_actual"] = None
         return
-
-    if text == "⏹️ Detener reenvío":
-        context.application.forwarder.stop_forwarding()
-        await update.message.reply_text("⏹️ Reenvío detenido correctamente.")
-        return
-
-    await update.message.reply_text(
-        "🤖 Opción no reconocida. Usa los botones o escribe /help."
-    )
