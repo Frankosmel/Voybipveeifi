@@ -48,7 +48,7 @@ class Forwarder:
             self.scheduler.remove_job("reenviar")
             print("⏹️ Reenvío detenido correctamente.")
 
-    def reenviar_mensajes(self):
+    async def reenviar_mensajes(self):
         mensajes = load_mensajes()
         config = load_config()
         destinos = config["destinos"]
@@ -60,7 +60,7 @@ class Forwarder:
         for destino in destinos:
             for mensaje in mensajes:
                 try:
-                    self.bot.forward_message(
+                    await self.bot.forward_message(
                         chat_id=destino,
                         from_chat_id=mensaje["from_chat_id"],
                         message_id=mensaje["message_id"]
