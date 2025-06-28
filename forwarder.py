@@ -1,27 +1,22 @@
 import json
+import pytz
+import os
 from telegram import Bot
 from apscheduler.schedulers.background import BackgroundScheduler
 
 CONFIG_FILE = "config.json"
 MENSAJES_FILE = "mensajes.json"
 
-# Cargar configuración
 def load_config():
     with open(CONFIG_FILE, "r") as f:
         return json.load(f)
 
-# Cargar mensajes programados
 def load_mensajes():
     if not os.path.exists(MENSAJES_FILE):
         with open(MENSAJES_FILE, "w") as f:
             json.dump([], f)
     with open(MENSAJES_FILE, "r") as f:
         return json.load(f)
-
-# Guardar mensajes programados
-def save_mensajes(mensajes):
-    with open(MENSAJES_FILE, "w") as f:
-        json.dump(mensajes, f, indent=4)
 
 class Forwarder:
     def __init__(self, bot: Bot):
@@ -34,8 +29,8 @@ class Forwarder:
     def start_forwarding(self):
         config = load_config()
         intervalo = config["intervalo_segundos"]
+        tz = pytz.timezone(config.get("timezone", "UTC"))
 
-        # Evitar múltiples jobs duplicados
         if "reenviar" in self.jobs:
             self.scheduler.remove_job("reenviar")
 
@@ -43,14 +38,15 @@ class Forwarder:
             self.reenviar_mensajes,
             "interval",
             seconds=intervalo,
-            id="reenviar"
+            id="reenviar",
+            timezone=tz
         )
-        print(f"🚀 Reenvío activado cada {intervalo} segundos.")
+        print(f"🚀 Reenvío activado cada {intervalo} segundos en zona horaria {tz}.")
 
     def stop_forwarding(self):
         if "reenviar" in self.jobs:
             self.scheduler.remove_job("reenviar")
-            print("⏹️ Reenvío detenido.")
+            print("⏹️ Reenvío detenido correctamente.")
 
     def reenviar_mensajes(self):
         mensajes = load_mensajes()
