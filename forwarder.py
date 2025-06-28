@@ -1,6 +1,7 @@
 import json
 import pytz
 import os
+import asyncio
 from telegram import Bot
 from apscheduler.schedulers.background import BackgroundScheduler
 
@@ -35,7 +36,7 @@ class Forwarder:
             self.scheduler.remove_job("reenviar")
 
         self.jobs["reenviar"] = self.scheduler.add_job(
-            self.reenviar_mensajes,
+            self.run_async_reenvio,
             "interval",
             seconds=intervalo,
             id="reenviar",
@@ -47,6 +48,9 @@ class Forwarder:
         if "reenviar" in self.jobs:
             self.scheduler.remove_job("reenviar")
             print("⏹️ Reenvío detenido correctamente.")
+
+    def run_async_reenvio(self):
+        asyncio.run(self.reenviar_mensajes())
 
     async def reenviar_mensajes(self):
         mensajes = load_mensajes()
