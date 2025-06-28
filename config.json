@@ -7,5 +7,6 @@
     "activo": false,
     "inicio": "09:00",
     "fin": "22:00"
-  }
+  },
+  "timezone": "UTC"
 }
