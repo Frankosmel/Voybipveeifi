@@ -12,12 +12,12 @@ from forwarder import Forwarder
 import config_manager as cfg
 from admin import admin_handler
 
-# Teclado principal sin botones de inicio/parada manual
+# Teclado principal con la opción de editar mensaje
 main_keyboard = ReplyKeyboardMarkup(
     keyboard=[
-        ["➕ Añadir destino", "🗑️ Eliminar mensaje"],
+        ["➕ Añadir destino", "✏️ Editar mensaje", "🗑️ Eliminar mensaje"],
         ["🔁 Cambiar intervalo", "🌐 Cambiar zona horaria"],
-        ["📄 Ver configuración"],
+        ["📄 Ver configuración"]
     ],
     resize_keyboard=True
 )
@@ -25,33 +25,31 @@ main_keyboard = ReplyKeyboardMarkup(
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     config = cfg.load_config()
     if update.effective_user.id != config["admin_id"]:
-        await update.message.reply_text("🚫 Acceso denegado. Solo administrador.")
+        await update.message.reply_text("🚫 Acceso denegado.")
         return
     await update.message.reply_text(
         "👋 *¡Hola administrador!*\n\n"
         "1️⃣ Reenvía un mensaje desde tu canal origen para configurarlo.\n"
-        "2️⃣ Ajusta intervalo, destinos o zona horaria con los botones.\n"
-        "3️⃣ Cuando termines, pulsa *🏁 Finalizar configuración* para iniciar el reenvío automático.\n\n"
-        "📋 Usa el menú de abajo para todo lo demás.",
+        "2️⃣ Ajusta sus parámetros (intervalo, destino, zona) con los botones.\n"
+        "3️⃣ Pulsa 🏁 *Finalizar configuración* para arrancar el reenvío.\n\n"
+        "O usa el menú de abajo para todas las acciones (añadir, editar, eliminar…).",
         reply_markup=main_keyboard,
         parse_mode="Markdown"
     )
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "🛠️ *Ayuda del bot*\n\n"
-        "• Envía /start para ver el menú.\n"
-        "• Reenvía un mensaje para configurarlo.\n"
-        "• Usa los botones para agregar destinos, cambiar intervalos o zona horaria.\n"
-        "• Pulsa 🏁 para finalizar y arrancar el reenvío.\n"
-        "• /help para este mensaje.",
-        parse_mode="Markdown"
+        "🛠️ *Ayuda*\n"
+        "/start – Panel principal\n"
+        "/help – Esta ayuda\n\n"
+        "Usa ✏️ para editar la configuración de un mensaje ya guardado."
     )
 
 async def unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("🤖 Comando no reconocido. Usa /help.")
 
 async def save_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Captura el mensaje reenviado para iniciar la configuración."""
     config = cfg.load_config()
     if update.effective_user.id != config["admin_id"]:
         return
@@ -61,7 +59,6 @@ async def save_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         mensaje_id = update.message.forward_from_message_id
 
         mensajes = cfg.load_mensajes()
-        # Guardamos con intervalo por defecto
         mensajes.append({
             "from_chat_id": origen_id,
             "message_id": mensaje_id,
@@ -73,13 +70,11 @@ async def save_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             keyboard=[
                 ["🕒 Intervalo del mensaje", "✅ Confirmar guardado"],
                 ["❌ Cancelar", "🏁 Finalizar configuración"]
-            ],
-            resize_keyboard=True
+            ], resize_keyboard=True
         )
-
         await update.message.reply_text(
-            f"📩 *Mensaje detectado* del canal `{origen_id}` (ID `{mensaje_id}`).\n\n"
-            "▶️ Elige una acción para este mensaje:",
+            f"📩 *Mensaje detectado* del canal `{origen_id}` (ID `{mensaje_id}`).\n"
+            "▶️ Elige qué deseas hacer con él:",
             reply_markup=opciones,
             parse_mode="Markdown"
         )
@@ -92,21 +87,20 @@ async def save_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def main():
     token = os.getenv("BOT_TOKEN")
     if not token:
-        print("❌ Falta definir BOT_TOKEN en el entorno.")
+        print("❌ Falta definir BOT_TOKEN")
         return
 
     app = ApplicationBuilder().token(token).build()
-
     forwarder = Forwarder(app.bot)
     app.forwarder = forwarder
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
 
-    # Captura mensajes reenviados para configuración
+    # Captura mensajes reenviados
     app.add_handler(MessageHandler(filters.FORWARDED, save_message))
 
-    # Resto de botones y comandos administrativos
+    # Botones y comandos de administración (incluye ✏️ Editar mensaje)
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, admin_handler))
 
     # Comandos desconocidos
