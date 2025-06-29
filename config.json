@@ -2,6 +2,7 @@
   "admin_id": 1383931339,
   "origen_chat_id": "",
   "destinos": [],
+  "listas_destinos": {},
   "intervalo_segundos": 60,
   "horario": {
     "activo": false,
